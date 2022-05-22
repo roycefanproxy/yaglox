@@ -1,41 +1,45 @@
 package main
 
-import "strconv"
+import (
+	"strconv"
+
+	"github.com/roycefanproxy/yaglox/constant"
+)
 
 var (
-	keywords map[string]TokenType
+	keywords map[string]constant.TokenType
 )
 
 func init() {
-	keywords = map[string]TokenType{
-		"and":    And,
-		"class":  Class,
-		"else":   Else,
-		"false":  False,
-		"for":    For,
-		"func":   Func,
-		"if":     If,
-		"nil":    Nil,
-		"or":     Or,
-		"print":  Print,
-		"return": Return,
-		"super":  Super,
-		"this":   This,
-		"true":   True,
-		"var":    Var,
-		"while":  While,
+	keywords = map[string]constant.TokenType{
+		"and":    constant.And,
+		"class":  constant.Class,
+		"else":   constant.Else,
+		"false":  constant.False,
+		"for":    constant.For,
+		"func":   constant.Func,
+		"if":     constant.If,
+		"nil":    constant.Nil,
+		"or":     constant.Or,
+		"print":  constant.Print,
+		"return": constant.Return,
+		"super":  constant.Super,
+		"this":   constant.This,
+		"true":   constant.True,
+		"var":    constant.Var,
+		"while":  constant.While,
 	}
 }
 
-type Scanner struct {
+type Tokenizer struct {
 	src                  string
 	runes                []rune
 	tokens               []Token
 	start, current, line int
 }
 
-func NewTokenizer(src string) *Scanner {
-	return &Scanner{
+func NewTokenizer(src string) *Tokenizer {
+	return &Tokenizer{
 		src:     src,
 		runes:   []rune(src),
 		tokens:  []Token{},
@@ -45,68 +49,68 @@ func NewTokenizer(src string) *Scanner {
 	}
 }
 
-func (s *Scanner) Parse() []Token {
+func (s *Tokenizer) Parse() []Token {
 	for !s.isAtEnd() {
 		s.start = s.current
 		s.parseOne()
 	}
 
-	s.tokens = append(s.tokens, NewToken(EOF, []rune{}, nil, s.line))
+	s.tokens = append(s.tokens, NewToken(constant.EOF, []rune{}, nil, s.line))
 
 	return s.tokens
 }
 
-func (s *Scanner) isAtEnd() bool {
+func (s *Tokenizer) isAtEnd() bool {
 	return s.current >= len(s.runes)
 }
 
-func (s *Scanner) parseOne() {
+func (s *Tokenizer) parseOne() {
 	char := s.advance()
 
 	switch char {
 	case '(':
-		s.addToken(LeftParen)
+		s.addToken(constant.LeftParen)
 	case ')':
-		s.addToken(RightParen)
+		s.addToken(constant.RightParen)
 	case '{':
-		s.addToken(LeftBrace)
+		s.addToken(constant.LeftBrace)
 	case '}':
-		s.addToken(RightBrace)
+		s.addToken(constant.RightBrace)
 	case ',':
-		s.addToken(Comma)
+		s.addToken(constant.Comma)
 	case '.':
-		s.addToken(Dot)
+		s.addToken(constant.Dot)
 	case '-':
-		s.addToken(Minus)
+		s.addToken(constant.Minus)
 	case '+':
-		s.addToken(Plus)
+		s.addToken(constant.Plus)
 	case ';':
-		s.addToken(Semicolon)
+		s.addToken(constant.Semicolon)
 	case '*':
-		s.addToken(Star)
+		s.addToken(constant.Star)
 
 	case '!':
-		tokenType := Bang
+		tokenType := constant.Bang
 		if s.match('=') {
-			tokenType = BangEqual
+			tokenType = constant.BangEqual
 		}
 		s.addToken(tokenType)
 	case '=':
-		tokenType := Equal
+		tokenType := constant.Equal
 		if s.match('=') {
-			tokenType = EqualEqual
+			tokenType = constant.EqualEqual
 		}
 		s.addToken(tokenType)
 	case '<':
-		tokenType := Less
+		tokenType := constant.Less
 		if s.match('=') {
-			tokenType = LessEqual
+			tokenType = constant.LessEqual
 		}
 		s.addToken(tokenType)
 	case '>':
-		tokenType := Greater
+		tokenType := constant.Greater
 		if s.match('=') {
-			tokenType = GreaterEqual
+			tokenType = constant.GreaterEqual
 		}
 		s.addToken(tokenType)
 	case '/':
@@ -119,7 +123,7 @@ func (s *Scanner) parseOne() {
 				s.advance()
 			}
 		} else {
-			s.addToken(Slash)
+			s.addToken(constant.Slash)
 		}
 	case ' ', '\r', '\t':
 	case '\n':
@@ -137,7 +141,7 @@ func (s *Scanner) parseOne() {
 	}
 }
 
-func (s *Scanner) identifier() {
+func (s *Tokenizer) identifier() {
 	for s.isAlphaNumeric(s.peek()) {
 		s.advance()
 	}
@@ -145,21 +149,21 @@ func (s *Scanner) identifier() {
 	text := string(s.runes[s.start:s.current])
 	tokenType, hasVal := keywords[text]
 	if !hasVal {
-		tokenType = Identifier
+		tokenType = constant.Identifier
 	}
 
 	s.addToken(tokenType)
 }
 
-func (s *Scanner) isAlphaNumeric(char rune) bool {
+func (s *Tokenizer) isAlphaNumeric(char rune) bool {
 	return s.isAlpha(char) || s.isDigit(char)
 }
 
-func (s *Scanner) isAlpha(char rune) bool {
+func (s *Tokenizer) isAlpha(char rune) bool {
 	return ('a' <= char && char <= 'z') || ('A' <= char && char <= 'Z') || (char == '_')
 }
 
-func (s *Scanner) number() {
+func (s *Tokenizer) number() {
 	for s.isDigit(s.peek()) {
 		s.advance()
 	}
@@ -169,14 +173,14 @@ func (s *Scanner) number() {
 	}
 
 	num, _ := strconv.ParseFloat(string(s.runes[s.start:s.current]), 64)
-	s.addTokenWithLiteral(Number, num)
+	s.addTokenWithLiteral(constant.Number, num)
 }
 
-func (s *Scanner) isDigit(char rune) bool {
+func (s *Tokenizer) isDigit(char rune) bool {
 	return '0' <= char && char <= '9'
 }
 
-func (s *Scanner) string() {
+func (s *Tokenizer) string() {
 	for s.peek() != '"' && !s.isAtEnd() {
 		if s.peek() == '\n' {
 			s.line++
@@ -192,10 +196,10 @@ func (s *Scanner) string() {
 	s.advance()
 
 	value := string(s.runes[s.start+1 : s.current-1])
-	s.addTokenWithLiteral(String, value)
+	s.addTokenWithLiteral(constant.String, value)
 }
 
-func (s *Scanner) peekNext() rune {
+func (s *Tokenizer) peekNext() rune {
 	if (s.current + 1) >= len(s.runes) {
 		return rune(0)
 	}
@@ -203,7 +207,7 @@ func (s *Scanner) peekNext() rune {
 	return s.runes[s.current+1]
 }
 
-func (s *Scanner) peek() rune {
+func (s *Tokenizer) peek() rune {
 	if s.isAtEnd() {
 		return rune(0)
 	}
@@ -211,7 +215,7 @@ func (s *Scanner) peek() rune {
 	return s.runes[s.current]
 }
 
-func (s *Scanner) match(char rune) bool {
+func (s *Tokenizer) match(char rune) bool {
 	if s.isAtEnd() {
 		return false
 	}
@@ -224,18 +228,18 @@ func (s *Scanner) match(char rune) bool {
 	return true
 }
 
-func (s *Scanner) advance() rune {
+func (s *Tokenizer) advance() rune {
 	char := s.runes[s.current]
 	s.current++
 
 	return char
 }
 
-func (s *Scanner) addToken(tokenType TokenType) {
+func (s *Tokenizer) addToken(tokenType constant.TokenType) {
 	s.addTokenWithLiteral(tokenType, nil)
 }
 
-func (s *Scanner) addTokenWithLiteral(tokenType TokenType, literal interface{}) {
+func (s *Tokenizer) addTokenWithLiteral(tokenType constant.TokenType, literal interface{}) {
 	text := s.runes[s.start:s.current]
 
 	s.tokens = append(s.tokens, NewToken(tokenType, text, literal, s.line))

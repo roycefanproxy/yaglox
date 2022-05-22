@@ -1,4 +1,4 @@
-package main
+package constant
 
 //go:generate stringer -type=TokenType -output=tokens_string.go
 

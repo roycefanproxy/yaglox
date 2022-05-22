@@ -19,16 +19,38 @@ func main() {
 
 }
 
+// func main() {
+// 	expression := &Binary{
+// 		Left: &Unary{
+// 			Operator: NewToken(Minus, []rune("-"), nil, 1),
+// 			Right:    &Literal{Value: 123},
+// 		},
+// 		Operator: NewToken(Star, []rune("*"), nil, 1),
+// 		Right: &Grouping{
+// 			Expression: &Literal{Value: 45.67},
+// 		},
+// 	}
+// 	fmt.Println(ASTPrinter{}.Print(expression))
+// }
+
 func execute(source string) {
 	tokenizer := NewTokenizer(source)
 	tokens := tokenizer.Parse()
 	parser := NewParser(tokens)
-	parser.Parse()
+	expression := parser.Parse()
 
 	if HasError {
 		return
 	}
 
+	fmt.Println("tokens: ")
+	for _, t := range tokens {
+		fmt.Printf("%s ", t)
+	}
+	fmt.Println()
+	fmt.Println(ASTPrinter{}.Print(expression))
+
+	Interpreter{}.Interpret(expression)
 }
 
 func executeFile(filePath string) {
@@ -41,6 +63,9 @@ func executeFile(filePath string) {
 
 	if HasError {
 		os.Exit(65)
+	}
+	if HasRuntimeError {
+		os.Exit(70)
 	}
 }
 
