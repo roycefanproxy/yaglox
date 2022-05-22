@@ -1,7 +1,7 @@
 package main
 
 import (
-	tokentype "github.com/roycefanproxy/yaglox/constant"
+	"github.com/roycefanproxy/yaglox/constant"
 )
 
 type Parser struct {
@@ -15,6 +15,21 @@ func NewParser(tokens []Token) *Parser {
 	}
 }
 
+func (p *Parser) Parse() []Stmt {
+	defer func() {
+		recover()
+	}()
+
+	stmts := make([]Stmt, 0)
+
+	for !p.isAtEnd() {
+		stmts = append(stmts, p.statement())
+	}
+
+	return stmts
+}
+
+/*
 func (p *Parser) Parse() (expr Expr) {
 	defer func() {
 		recover()
@@ -23,29 +38,54 @@ func (p *Parser) Parse() (expr Expr) {
 	expr = p.expression()
 	return
 }
+*/
+
+func (p *Parser) statement() Stmt {
+	if p.match(constant.Print) {
+		return p.printStatement()
+	}
+
+	return p.expressionStatement()
+}
+
+func (p *Parser) printStatement() Stmt {
+	expr := p.expression()
+	p.consume(constant.Semicolon, "Expect ';' after value.")
+	return &PrintStmt{
+		Expression: expr,
+	}
+}
+
+func (p *Parser) expressionStatement() Stmt {
+	expr := p.expression()
+	p.consume(constant.Semicolon, "Expect ';' after value.")
+	return &ExprStmt{
+		Expression: expr,
+	}
+}
 
 func (p *Parser) expression() Expr {
 	return p.equality()
 }
 
 func (p *Parser) equality() Expr {
-	return p.binaryMatcher((*Parser).comparison, tokentype.BangEqual, tokentype.EqualEqual)
+	return p.binaryMatcher((*Parser).comparison, constant.BangEqual, constant.EqualEqual)
 }
 
 func (p *Parser) comparison() Expr {
-	return p.binaryMatcher((*Parser).term, tokentype.Less, tokentype.LessEqual, tokentype.GreaterEqual, tokentype.Greater)
+	return p.binaryMatcher((*Parser).term, constant.Less, constant.LessEqual, constant.GreaterEqual, constant.Greater)
 }
 
 func (p *Parser) term() Expr {
-	return p.binaryMatcher((*Parser).factor, tokentype.Minus, tokentype.Plus)
+	return p.binaryMatcher((*Parser).factor, constant.Minus, constant.Plus)
 }
 
 func (p *Parser) factor() Expr {
-	return p.binaryMatcher((*Parser).unary, tokentype.Slash, tokentype.Star)
+	return p.binaryMatcher((*Parser).unary, constant.Slash, constant.Star)
 }
 
 func (p *Parser) unary() Expr {
-	if p.match(tokentype.Bang, tokentype.Minus) {
+	if p.match(constant.Bang, constant.Minus) {
 		operator := p.previous()
 		right := p.unary()
 		return &Unary{
@@ -63,18 +103,18 @@ func (p *Parser) primary() (expr Expr) {
 	}
 
 	switch p.peek().Type() {
-	case tokentype.False:
+	case constant.False:
 		expr = &Literal{Value: false}
-	case tokentype.True:
+	case constant.True:
 		expr = &Literal{Value: true}
-	case tokentype.Nil:
+	case constant.Nil:
 		expr = &Literal{Value: nil}
-	case tokentype.Number, tokentype.String:
+	case constant.Number, constant.String:
 		expr = &Literal{p.peek().Literal()}
-	case tokentype.LeftParen:
+	case constant.LeftParen:
 		p.advance()
 		expr := p.expression()
-		p.consume(tokentype.RightParen, "Expect ')' after expression.")
+		p.consume(constant.RightParen, "Expect ')' after expression.")
 		expr = &Grouping{Expression: expr}
 		goto post_advance
 	}
@@ -112,7 +152,7 @@ func (p *Parser) primary() (expr Expr) {
 }
 */
 
-func (p *Parser) consume(tokenType tokentype.TokenType, msg string) Token {
+func (p *Parser) consume(tokenType constant.TokenType, msg string) Token {
 	if p.check(tokenType) {
 		return p.advance()
 	}
@@ -120,7 +160,7 @@ func (p *Parser) consume(tokenType tokentype.TokenType, msg string) Token {
 	panic(p.error(p.peek(), msg))
 }
 
-func (p *Parser) match(tokenTypes ...tokentype.TokenType) bool {
+func (p *Parser) match(tokenTypes ...constant.TokenType) bool {
 	for _, tokenType := range tokenTypes {
 		if p.check(tokenType) {
 			p.advance()
@@ -131,7 +171,7 @@ func (p *Parser) match(tokenTypes ...tokentype.TokenType) bool {
 	return false
 }
 
-func (p *Parser) check(tokenType tokentype.TokenType) bool {
+func (p *Parser) check(tokenType constant.TokenType) bool {
 	if p.isAtEnd() {
 		return false
 	}
@@ -148,7 +188,7 @@ func (p *Parser) advance() Token {
 }
 
 func (p *Parser) isAtEnd() bool {
-	return p.peek().Type() == tokentype.EOF
+	return p.peek().Type() == constant.EOF
 }
 
 func (p *Parser) peek() Token {
@@ -167,13 +207,13 @@ func (p *Parser) Synchronize() {
 	p.advance()
 
 	for !p.isAtEnd() {
-		if p.previous().Type() == tokentype.Semicolon {
+		if p.previous().Type() == constant.Semicolon {
 			return
 		}
 
 		switch p.peek().Type() {
-		case tokentype.Class, tokentype.Func, tokentype.Var, tokentype.For,
-			tokentype.If, tokentype.While, tokentype.Print, tokentype.Return:
+		case constant.Class, constant.Func, constant.Var, constant.For,
+			constant.If, constant.While, constant.Print, constant.Return:
 			return
 		}
 
@@ -181,7 +221,7 @@ func (p *Parser) Synchronize() {
 	}
 }
 
-func (p *Parser) binaryMatcher(operand func(p *Parser) Expr, matches ...tokentype.TokenType) Expr {
+func (p *Parser) binaryMatcher(operand func(p *Parser) Expr, matches ...constant.TokenType) Expr {
 	expr := operand(p)
 
 	for p.match(matches...) {

@@ -12,15 +12,15 @@ func (p ASTPrinter) Print(expr Expr) string {
 	return expr.AcceptString(p)
 }
 
-func (p ASTPrinter) VisitBinaryExpr(expr *Binary) string {
+func (p ASTPrinter) VisitBinary(expr *Binary) string {
 	return p.parenthesize(expr.Operator.Lexeme(), expr.Left, expr.Right)
 }
 
-func (p ASTPrinter) VisitGroupingExpr(expr *Grouping) string {
+func (p ASTPrinter) VisitGrouping(expr *Grouping) string {
 	return p.parenthesize([]rune("group"), expr.Expression)
 }
 
-func (p ASTPrinter) VisitLiteralExpr(expr *Literal) string {
+func (p ASTPrinter) VisitLiteral(expr *Literal) string {
 	if expr.Value == nil {
 		return "nil"
 	}
@@ -37,7 +37,7 @@ func (p ASTPrinter) VisitLiteralExpr(expr *Literal) string {
 	}
 }
 
-func (p ASTPrinter) VisitUnaryExpr(expr *Unary) string {
+func (p ASTPrinter) VisitUnary(expr *Unary) string {
 	return p.parenthesize(expr.Operator.Lexeme(), expr.Right)
 }
 
