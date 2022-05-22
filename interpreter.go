@@ -8,24 +8,25 @@ import (
 
 type Interpreter struct{}
 
-func (i Interpreter) Interpret(expression Expr) {
+func (i Interpreter) Interpret(statements []Stmt) {
 	defer func() {
 		recover()
 	}()
 
-	val := i.evaluate(expression)
-	fmt.Println(i.stringify(val))
+	for _, stmt := range statements {
+		i.execute(stmt)
+	}
 }
 
-func (i Interpreter) VisitLiteralExpr(expr *Literal) interface{} {
+func (i Interpreter) VisitLiteral(expr *Literal) interface{} {
 	return expr.Value
 }
 
-func (i Interpreter) VisitGroupingExpr(expr *Grouping) interface{} {
+func (i Interpreter) VisitGrouping(expr *Grouping) interface{} {
 	return i.evaluate(expr)
 }
 
-func (i Interpreter) VisitUnaryExpr(expr *Unary) interface{} {
+func (i Interpreter) VisitUnary(expr *Unary) interface{} {
 	right := i.evaluate(expr.Right)
 
 	switch expr.Operator.Type() {
@@ -39,7 +40,7 @@ func (i Interpreter) VisitUnaryExpr(expr *Unary) interface{} {
 	return nil
 }
 
-func (i Interpreter) VisitBinaryExpr(expr *Binary) interface{} {
+func (i Interpreter) VisitBinary(expr *Binary) interface{} {
 	left := i.evaluate(expr.Left)
 	right := i.evaluate(expr.Right)
 
@@ -86,8 +87,21 @@ func (i Interpreter) VisitBinaryExpr(expr *Binary) interface{} {
 	return nil
 }
 
+func (i Interpreter) VisitExprStmt(stmt *ExprStmt) {
+	i.evaluate(stmt.Expression)
+}
+
+func (i Interpreter) VisitPrintStmt(stmt *PrintStmt) {
+	val := i.evaluate(stmt.Expression)
+	fmt.Println(i.stringify(val))
+}
+
 func (i Interpreter) evaluate(expr Expr) interface{} {
 	return expr.AcceptInterface(i)
+}
+
+func (i Interpreter) execute(stmt Stmt) {
+	stmt.Accept(i)
 }
 
 func (i Interpreter) isTruthy(val interface{}) bool {

@@ -37,20 +37,22 @@ func execute(source string) {
 	tokenizer := NewTokenizer(source)
 	tokens := tokenizer.Parse()
 	parser := NewParser(tokens)
-	expression := parser.Parse()
+	statements := parser.Parse()
 
 	if HasError {
 		return
 	}
 
-	fmt.Println("tokens: ")
-	for _, t := range tokens {
-		fmt.Printf("%s ", t)
-	}
-	fmt.Println()
-	fmt.Println(ASTPrinter{}.Print(expression))
+	/*
+		fmt.Println("tokens: ")
+		for _, t := range tokens {
+			fmt.Printf("%s ", t)
+		}
+		fmt.Println()
+		fmt.Println(ASTPrinter{}.Print(expression))
+	*/
 
-	Interpreter{}.Interpret(expression)
+	Interpreter{}.Interpret(statements)
 }
 
 func executeFile(filePath string) {
