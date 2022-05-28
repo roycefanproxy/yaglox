@@ -41,6 +41,10 @@ func (p ASTPrinter) VisitUnary(expr *Unary) string {
 	return p.parenthesize(expr.Operator.Lexeme(), expr.Right)
 }
 
+func (p ASTPrinter) VisitVariable(expr *Variable) string {
+	return string(expr.Name.Lexeme())
+}
+
 func (p ASTPrinter) parenthesize(name []rune, expressions ...Expr) string {
 	var builder strings.Builder
 

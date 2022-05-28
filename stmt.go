@@ -5,11 +5,13 @@ package main
 type StmtVisitorVoid interface {
     VisitExprStmt(expr *ExprStmt) 
 	VisitPrintStmt(expr *PrintStmt) 
+	VisitVarDeclStmt(expr *VarDeclStmt) 
 }
 
 type StmtVisitor[R any] interface {
     VisitExprStmt(expr *ExprStmt) R
 	VisitPrintStmt(expr *PrintStmt) R
+	VisitVarDeclStmt(expr *VarDeclStmt) R
 }
 
 type Stmt interface {
@@ -49,6 +51,24 @@ func (e *PrintStmt) AcceptInterface(visitor StmtVisitor[interface{}]) interface{
 
 func (e *PrintStmt) Accept(visitor StmtVisitorVoid)  {
     visitor.VisitPrintStmt(e)
+}
+
+
+type VarDeclStmt struct {
+    Name Token
+	Initializer Expr
+}
+
+func (e *VarDeclStmt) AcceptString(visitor StmtVisitor[string]) string {
+    return visitor.VisitVarDeclStmt(e)
+}
+
+func (e *VarDeclStmt) AcceptInterface(visitor StmtVisitor[interface{}]) interface{} {
+    return visitor.VisitVarDeclStmt(e)
+}
+
+func (e *VarDeclStmt) Accept(visitor StmtVisitorVoid)  {
+    visitor.VisitVarDeclStmt(e)
 }
 
 

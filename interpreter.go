@@ -6,7 +6,17 @@ import (
 	"github.com/roycefanproxy/yaglox/constant"
 )
 
-type Interpreter struct{}
+type Interpreter struct {
+	Env Environment
+}
+
+func NewInterpreter() *Interpreter {
+	return &Interpreter{
+		Env: Environment{
+			Values: map[string]interface{}{},
+		},
+	}
+}
 
 func (i Interpreter) Interpret(statements []Stmt) {
 	defer func() {
@@ -23,7 +33,7 @@ func (i Interpreter) VisitLiteral(expr *Literal) interface{} {
 }
 
 func (i Interpreter) VisitGrouping(expr *Grouping) interface{} {
-	return i.evaluate(expr)
+	return i.evaluate(expr.Expression)
 }
 
 func (i Interpreter) VisitUnary(expr *Unary) interface{} {
@@ -87,6 +97,10 @@ func (i Interpreter) VisitBinary(expr *Binary) interface{} {
 	return nil
 }
 
+func (i Interpreter) VisitVariable(expr *Variable) interface{} {
+	return i.Env.Get(expr.Name)
+}
+
 func (i Interpreter) VisitExprStmt(stmt *ExprStmt) {
 	i.evaluate(stmt.Expression)
 }
@@ -94,6 +108,16 @@ func (i Interpreter) VisitExprStmt(stmt *ExprStmt) {
 func (i Interpreter) VisitPrintStmt(stmt *PrintStmt) {
 	val := i.evaluate(stmt.Expression)
 	fmt.Println(i.stringify(val))
+}
+
+func (i Interpreter) VisitVarDeclStmt(stmt *VarDeclStmt) {
+	var val interface{}
+
+	if stmt.Initializer != nil {
+		val = i.evaluate(stmt.Initializer)
+	}
+
+	i.Env.Define(stmt.Name, val)
 }
 
 func (i Interpreter) evaluate(expr Expr) interface{} {

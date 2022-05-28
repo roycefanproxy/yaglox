@@ -23,7 +23,7 @@ func (p *Parser) Parse() []Stmt {
 	stmts := make([]Stmt, 0)
 
 	for !p.isAtEnd() {
-		stmts = append(stmts, p.statement())
+		stmts = append(stmts, p.declaration())
 	}
 
 	return stmts
@@ -39,6 +39,36 @@ func (p *Parser) Parse() (expr Expr) {
 	return
 }
 */
+
+func (p *Parser) declaration() Stmt {
+	defer func() {
+		if err := recover(); err != nil {
+			p.Synchronize()
+		}
+	}()
+
+	if p.match(constant.Var) {
+		return p.varDeclaration()
+	}
+
+	return p.statement()
+}
+
+func (p *Parser) varDeclaration() Stmt {
+	name := p.consume(constant.Identifier, "Expect variable name.")
+
+	var initializer Expr
+	if p.match(constant.Equal) {
+		initializer = p.expression()
+	}
+
+	p.consume(constant.Semicolon, "Expect ';' after variable declaration.")
+
+	return &VarDeclStmt{
+		Name:        name,
+		Initializer: initializer,
+	}
+}
 
 func (p *Parser) statement() Stmt {
 	if p.match(constant.Print) {
@@ -110,10 +140,12 @@ func (p *Parser) primary() (expr Expr) {
 	case constant.Nil:
 		expr = &Literal{Value: nil}
 	case constant.Number, constant.String:
-		expr = &Literal{p.peek().Literal()}
+		expr = &Literal{Value: p.peek().Literal()}
+	case constant.Identifier:
+		expr = &Variable{Name: p.peek()}
 	case constant.LeftParen:
 		p.advance()
-		expr := p.expression()
+		expr = p.expression()
 		p.consume(constant.RightParen, "Expect ')' after expression.")
 		expr = &Grouping{Expression: expr}
 		goto post_advance

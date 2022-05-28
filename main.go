@@ -52,7 +52,7 @@ func execute(source string) {
 		fmt.Println(ASTPrinter{}.Print(expression))
 	*/
 
-	Interpreter{}.Interpret(statements)
+	NewInterpreter().Interpret(statements)
 }
 
 func executeFile(filePath string) {

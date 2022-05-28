@@ -172,6 +172,10 @@ func (s *Tokenizer) number() {
 		s.advance()
 	}
 
+	for s.isDigit(s.peek()) {
+		s.advance()
+	}
+
 	num, _ := strconv.ParseFloat(string(s.runes[s.start:s.current]), 64)
 	s.addTokenWithLiteral(constant.Number, num)
 }

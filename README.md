@@ -3,13 +3,17 @@ Yet another go lox
 
 ## Syntax
 
-program -> statement\* EOF;
+program -> declaration\* EOF;
+
+declaration -> varDecl | statement;
 
 statement -> exprStmt | printStmt;
 
 exprStmt -> expression ";";
 
 printStmt -> "print" expression ";";
+
+varDecl -> "var" IDENTIFIER ("=" expression)? ";";
 
 expression -> equality;
 
@@ -23,6 +27,6 @@ factor -> unary ((/ | \*) unary)\*;
 
 unary -> ((! | -) unary) | primary;
 
-primary -> NUMBER | STRING | "false" | "true" | "nil" | grouping;
+primary -> NUMBER | STRING | "false" | "true" | "nil" | grouping | IDENTIFIER;
 
 grouping -> "(" expression ")";
