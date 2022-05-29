@@ -7,18 +7,16 @@ import (
 )
 
 type Interpreter struct {
-	Env Environment
+	Env *Environment
 }
 
 func NewInterpreter() *Interpreter {
 	return &Interpreter{
-		Env: Environment{
-			Values: map[string]interface{}{},
-		},
+		Env: NewEnvironment(nil),
 	}
 }
 
-func (i Interpreter) Interpret(statements []Stmt) {
+func (i *Interpreter) Interpret(statements []Stmt) {
 	defer func() {
 		recover()
 	}()
@@ -28,15 +26,15 @@ func (i Interpreter) Interpret(statements []Stmt) {
 	}
 }
 
-func (i Interpreter) VisitLiteral(expr *Literal) interface{} {
+func (i *Interpreter) VisitLiteral(expr *Literal) interface{} {
 	return expr.Value
 }
 
-func (i Interpreter) VisitGrouping(expr *Grouping) interface{} {
+func (i *Interpreter) VisitGrouping(expr *Grouping) interface{} {
 	return i.evaluate(expr.Expression)
 }
 
-func (i Interpreter) VisitUnary(expr *Unary) interface{} {
+func (i *Interpreter) VisitUnary(expr *Unary) interface{} {
 	right := i.evaluate(expr.Right)
 
 	switch expr.Operator.Type() {
@@ -50,7 +48,7 @@ func (i Interpreter) VisitUnary(expr *Unary) interface{} {
 	return nil
 }
 
-func (i Interpreter) VisitBinary(expr *Binary) interface{} {
+func (i *Interpreter) VisitBinary(expr *Binary) interface{} {
 	left := i.evaluate(expr.Left)
 	right := i.evaluate(expr.Right)
 
@@ -97,20 +95,26 @@ func (i Interpreter) VisitBinary(expr *Binary) interface{} {
 	return nil
 }
 
-func (i Interpreter) VisitVariable(expr *Variable) interface{} {
+func (i *Interpreter) VisitVariable(expr *Variable) interface{} {
 	return i.Env.Get(expr.Name)
 }
 
-func (i Interpreter) VisitExprStmt(stmt *ExprStmt) {
+func (i *Interpreter) VisitAssign(expr *Assign) interface{} {
+	value := i.evaluate(expr.Value)
+	i.Env.Assign(expr.Name, value)
+	return value
+}
+
+func (i *Interpreter) VisitExprStmt(stmt *ExprStmt) {
 	i.evaluate(stmt.Expression)
 }
 
-func (i Interpreter) VisitPrintStmt(stmt *PrintStmt) {
+func (i *Interpreter) VisitPrintStmt(stmt *PrintStmt) {
 	val := i.evaluate(stmt.Expression)
 	fmt.Println(i.stringify(val))
 }
 
-func (i Interpreter) VisitVarDeclStmt(stmt *VarDeclStmt) {
+func (i *Interpreter) VisitVarDeclStmt(stmt *VarDeclStmt) {
 	var val interface{}
 
 	if stmt.Initializer != nil {
@@ -120,15 +124,33 @@ func (i Interpreter) VisitVarDeclStmt(stmt *VarDeclStmt) {
 	i.Env.Define(stmt.Name, val)
 }
 
-func (i Interpreter) evaluate(expr Expr) interface{} {
+func (i *Interpreter) VisitBlockStmt(stmt *BlockStmt) {
+	env := NewEnvironment(i.Env)
+	i.executeBlock(stmt.Statements, env)
+}
+
+func (i *Interpreter) evaluate(expr Expr) interface{} {
 	return expr.AcceptInterface(i)
 }
 
-func (i Interpreter) execute(stmt Stmt) {
+func (i *Interpreter) execute(stmt Stmt) {
 	stmt.Accept(i)
 }
 
-func (i Interpreter) isTruthy(val interface{}) bool {
+func (i *Interpreter) executeBlock(statements []Stmt, env *Environment) {
+	prevEnv := i.Env
+	defer func() {
+		recover()
+		i.Env = prevEnv
+	}()
+
+	i.Env = env
+	for _, stmt := range statements {
+		i.execute(stmt)
+	}
+}
+
+func (i *Interpreter) isTruthy(val interface{}) bool {
 	if val == nil {
 		return false
 	}
@@ -143,11 +165,11 @@ func (i Interpreter) isTruthy(val interface{}) bool {
 	}
 }
 
-func (i Interpreter) isEqual(left, right interface{}) bool {
+func (i *Interpreter) isEqual(left, right interface{}) bool {
 	return left == right
 }
 
-func (i Interpreter) checkNumberOperand(op Token, operand interface{}) {
+func (i *Interpreter) checkNumberOperand(op Token, operand interface{}) {
 	_, ok := operand.(float64)
 
 	if !ok {
@@ -155,7 +177,7 @@ func (i Interpreter) checkNumberOperand(op Token, operand interface{}) {
 	}
 }
 
-func (i Interpreter) checkNumberOperands(op Token, l, r interface{}) {
+func (i *Interpreter) checkNumberOperands(op Token, l, r interface{}) {
 	_, lOk := l.(float64)
 	_, rOk := r.(float64)
 	if !lOk || !rOk {
@@ -163,11 +185,11 @@ func (i Interpreter) checkNumberOperands(op Token, l, r interface{}) {
 	}
 }
 
-func (Interpreter) error(token Token, msg string) string {
+func (*Interpreter) error(token Token, msg string) string {
 	return EmitRuntimeError(token, msg)
 }
 
-func (Interpreter) stringify(val interface{}) string {
+func (*Interpreter) stringify(val interface{}) string {
 	if val == nil {
 		return "<nil>"
 	}

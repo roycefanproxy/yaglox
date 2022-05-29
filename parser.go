@@ -74,6 +74,9 @@ func (p *Parser) statement() Stmt {
 	if p.match(constant.Print) {
 		return p.printStatement()
 	}
+	if p.match(constant.LeftBrace) {
+		return p.blockStatement()
+	}
 
 	return p.expressionStatement()
 }
@@ -86,6 +89,12 @@ func (p *Parser) printStatement() Stmt {
 	}
 }
 
+func (p *Parser) blockStatement() Stmt {
+	return &BlockStmt{
+		Statements: p.statementsInBlock(),
+	}
+}
+
 func (p *Parser) expressionStatement() Stmt {
 	expr := p.expression()
 	p.consume(constant.Semicolon, "Expect ';' after value.")
@@ -94,8 +103,42 @@ func (p *Parser) expressionStatement() Stmt {
 	}
 }
 
+func (p *Parser) statementsInBlock() []Stmt {
+	stmts := []Stmt{}
+
+	for !p.check(constant.RightBrace) && !p.isAtEnd() {
+		stmts = append(stmts, p.declaration())
+	}
+
+	p.consume(constant.RightBrace, "Expect '}' at the end of block.")
+
+	return stmts
+}
+
 func (p *Parser) expression() Expr {
-	return p.equality()
+	return p.assignment()
+}
+
+func (p *Parser) assignment() Expr {
+	expr := p.equality()
+
+	if p.match(constant.Equal) {
+		equals := p.previous()
+		value := p.assignment()
+
+		if variable, ok := expr.(*Variable); ok {
+			name := variable.Name
+
+			return &Assign{
+				Name:  name,
+				Value: value,
+			}
+		}
+
+		p.error(equals, "Invalid assignment target.")
+	}
+
+	return expr
 }
 
 func (p *Parser) equality() Expr {

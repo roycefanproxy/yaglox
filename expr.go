@@ -3,7 +3,8 @@ package main
 
 
 type ExprVisitorVoid interface {
-    VisitBinary(expr *Binary) 
+    VisitAssign(expr *Assign) 
+	VisitBinary(expr *Binary) 
 	VisitGrouping(expr *Grouping) 
 	VisitLiteral(expr *Literal) 
 	VisitUnary(expr *Unary) 
@@ -11,7 +12,8 @@ type ExprVisitorVoid interface {
 }
 
 type ExprVisitor[R any] interface {
-    VisitBinary(expr *Binary) R
+    VisitAssign(expr *Assign) R
+	VisitBinary(expr *Binary) R
 	VisitGrouping(expr *Grouping) R
 	VisitLiteral(expr *Literal) R
 	VisitUnary(expr *Unary) R
@@ -23,6 +25,24 @@ type Expr interface {
 	AcceptInterface(visitor ExprVisitor[interface{}]) interface{}
 	Accept(visitor ExprVisitorVoid) 
 }
+
+type Assign struct {
+    Name Token
+	Value Expr
+}
+
+func (e *Assign) AcceptString(visitor ExprVisitor[string]) string {
+    return visitor.VisitAssign(e)
+}
+
+func (e *Assign) AcceptInterface(visitor ExprVisitor[interface{}]) interface{} {
+    return visitor.VisitAssign(e)
+}
+
+func (e *Assign) Accept(visitor ExprVisitorVoid)  {
+    visitor.VisitAssign(e)
+}
+
 
 type Binary struct {
     Left Expr

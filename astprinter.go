@@ -12,6 +12,19 @@ func (p ASTPrinter) Print(expr Expr) string {
 	return expr.AcceptString(p)
 }
 
+func (p ASTPrinter) VisitAssign(expr *Assign) string {
+	var builder strings.Builder
+
+	builder.WriteString("(")
+	builder.WriteString(string([]rune("assign")))
+	str := fmt.Sprintf(" %s", string(expr.Name.Lexeme()))
+	builder.WriteString(str)
+	builder.WriteString(expr.Value.AcceptString(p))
+	builder.WriteString(")")
+
+	return builder.String()
+}
+
 func (p ASTPrinter) VisitBinary(expr *Binary) string {
 	return p.parenthesize(expr.Operator.Lexeme(), expr.Left, expr.Right)
 }

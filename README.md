@@ -7,15 +7,19 @@ program -> declaration\* EOF;
 
 declaration -> varDecl | statement;
 
-statement -> exprStmt | printStmt;
+statement -> exprStmt | printStmt | block;
 
 exprStmt -> expression ";";
 
 printStmt -> "print" expression ";";
 
+block -> "{" declaration* "}"
+
 varDecl -> "var" IDENTIFIER ("=" expression)? ";";
 
-expression -> equality;
+expression -> assignment;
+
+assignment -> IDENTIFIER "=" assignment | equality;
 
 equality -> comparison ((!= | ==) comparison)\*;
 
