@@ -29,17 +29,6 @@ func (p *Parser) Parse() []Stmt {
 	return stmts
 }
 
-/*
-func (p *Parser) Parse() (expr Expr) {
-	defer func() {
-		recover()
-	}()
-
-	expr = p.expression()
-	return
-}
-*/
-
 func (p *Parser) declaration() Stmt {
 	defer func() {
 		if err := recover(); err != nil {
@@ -71,14 +60,114 @@ func (p *Parser) varDeclaration() Stmt {
 }
 
 func (p *Parser) statement() Stmt {
-	if p.match(constant.Print) {
-		return p.printStatement()
+	if p.match(constant.If) {
+		return p.ifStatement()
+	}
+	if p.match(constant.While) {
+		return p.whileStatement()
+	}
+	if p.match(constant.For) {
+		return p.forStatement()
 	}
 	if p.match(constant.LeftBrace) {
 		return p.blockStatement()
 	}
+	if p.match(constant.Print) {
+		return p.printStatement()
+	}
 
 	return p.expressionStatement()
+}
+
+func (p *Parser) ifStatement() Stmt {
+	p.consume(constant.LeftParen, "Expect '(' after 'if'.")
+	condition := p.expression()
+	p.consume(constant.RightParen, "Expect ')' after if condition.")
+
+	thenBranch := p.statement()
+	var elseBranch Stmt
+	if p.match(constant.Else) {
+		elseBranch = p.statement()
+	}
+
+	return &IfStmt{
+		Condition: condition,
+		Then:      thenBranch,
+		Else:      elseBranch,
+	}
+}
+
+func (p *Parser) whileStatement() Stmt {
+	p.consume(constant.LeftBrace, "Expect '(' after 'while'.")
+	condition := p.expression()
+	p.consume(constant.RightParen, "Expect ')' after while condition.")
+
+	statement := p.statement()
+
+	return &WhileStmt{
+		Condition: condition,
+		Statement: statement,
+	}
+}
+
+func (p *Parser) forStatement() Stmt {
+	p.consume(constant.LeftBrace, "Expect '(' after 'while'.")
+	var initializer Stmt
+	if p.match(constant.Semicolon) {
+	} else if p.match(constant.Var) {
+		initializer = p.varDeclaration()
+	} else {
+		initializer = p.expressionStatement()
+	}
+
+	var condition Expr
+	if !p.check(constant.Semicolon) {
+		condition = p.expression()
+	}
+	p.consume(constant.Semicolon, "Expect ';' after loop condition.")
+
+	var tailExpression Expr
+	if !p.check(constant.RightParen) {
+		tailExpression = p.expression()
+	}
+	p.consume(constant.RightParen, "Expect ')' after for clause.")
+
+	statement := p.statement()
+
+	if tailExpression != nil {
+		statement = &BlockStmt{
+			Statements: []Stmt{
+				statement,
+				&ExprStmt{Expression: tailExpression},
+			},
+		}
+	}
+
+	if condition == nil {
+		condition = &Literal{Value: true}
+	}
+
+	statement = &WhileStmt{
+		Condition: condition,
+		Statement: statement,
+	}
+
+	if initializer != nil {
+		statement = &BlockStmt{
+			Statements: []Stmt{
+				initializer,
+				statement,
+			},
+		}
+	}
+
+	return statement
+}
+
+func (p *Parser) blockStatement() Stmt {
+	return &BlockStmt{
+		Statements: p.statementsInBlock(),
+	}
 }
 
 func (p *Parser) printStatement() Stmt {
@@ -88,13 +177,6 @@ func (p *Parser) printStatement() Stmt {
 		Expression: expr,
 	}
 }
-
-func (p *Parser) blockStatement() Stmt {
-	return &BlockStmt{
-		Statements: p.statementsInBlock(),
-	}
-}
-
 func (p *Parser) expressionStatement() Stmt {
 	expr := p.expression()
 	p.consume(constant.Semicolon, "Expect ';' after value.")
@@ -120,7 +202,7 @@ func (p *Parser) expression() Expr {
 }
 
 func (p *Parser) assignment() Expr {
-	expr := p.equality()
+	expr := p.or()
 
 	if p.match(constant.Equal) {
 		equals := p.previous()
@@ -139,6 +221,14 @@ func (p *Parser) assignment() Expr {
 	}
 
 	return expr
+}
+
+func (p *Parser) or() Expr {
+	return p.logicalMatcher((*Parser).and, constant.Or)
+}
+
+func (p *Parser) and() Expr {
+	return p.logicalMatcher((*Parser).equality, constant.And)
 }
 
 func (p *Parser) equality() Expr {
@@ -202,30 +292,6 @@ post_advance:
 
 	return
 }
-
-/*
-func (p *Parser) primary() (expr Expr) {
-	if p.match(False) {
-		return &Literal{Value: false}
-	}
-
-	if p.match(True) {
-		return &Literal{Value: true}
-	}
-
-	if p.match(Number, String) {
-		return &Literal{Value: p.previous().Literal()}
-	}
-
-	if p.match(LeftParen) {
-		expr := p.expression()
-		p.consume(RightParen, "Expect ')' after expression.")
-		return &Grouping{Expression: expr}
-	}
-
-	panic(p.error(p.peek(), "Expect expression."))
-}
-*/
 
 func (p *Parser) consume(tokenType constant.TokenType, msg string) Token {
 	if p.check(tokenType) {
@@ -303,6 +369,23 @@ func (p *Parser) binaryMatcher(operand func(p *Parser) Expr, matches ...constant
 		operator := p.previous()
 		right := operand(p)
 		bin := &Binary{
+			Left:     expr,
+			Operator: operator,
+			Right:    right,
+		}
+		expr = bin
+	}
+
+	return expr
+}
+
+func (p *Parser) logicalMatcher(operand func(p *Parser) Expr, matches ...constant.TokenType) Expr {
+	expr := operand(p)
+
+	for p.match(matches...) {
+		operator := p.previous()
+		right := operand(p)
+		bin := &Logical{
 			Left:     expr,
 			Operator: operator,
 			Right:    right,

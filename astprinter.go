@@ -50,6 +50,10 @@ func (p ASTPrinter) VisitLiteral(expr *Literal) string {
 	}
 }
 
+func (p ASTPrinter) VisitLogical(expr *Logical) string {
+	return p.parenthesize(expr.Operator.Lexeme(), expr.Left, expr.Right)
+}
+
 func (p ASTPrinter) VisitUnary(expr *Unary) string {
 	return p.parenthesize(expr.Operator.Lexeme(), expr.Right)
 }

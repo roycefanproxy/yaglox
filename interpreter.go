@@ -95,6 +95,22 @@ func (i *Interpreter) VisitBinary(expr *Binary) interface{} {
 	return nil
 }
 
+func (i *Interpreter) VisitLogical(expr *Logical) interface{} {
+	left := i.evaluate(expr.Left)
+
+	if isLeftTruthy := i.isTruthy(left); expr.Operator.Type() == constant.Or {
+		if isLeftTruthy {
+			return left
+		}
+	} else {
+		if !isLeftTruthy {
+			return left
+		}
+	}
+
+	return i.evaluate(expr.Right)
+}
+
 func (i *Interpreter) VisitVariable(expr *Variable) interface{} {
 	return i.Env.Get(expr.Name)
 }
@@ -127,6 +143,20 @@ func (i *Interpreter) VisitVarDeclStmt(stmt *VarDeclStmt) {
 func (i *Interpreter) VisitBlockStmt(stmt *BlockStmt) {
 	env := NewEnvironment(i.Env)
 	i.executeBlock(stmt.Statements, env)
+}
+
+func (i *Interpreter) VisitIfStmt(stmt *IfStmt) {
+	if i.isTruthy(i.evaluate(stmt.Condition)) {
+		i.execute(stmt.Then)
+	} else if stmt.Else != nil {
+		i.execute(stmt.Else)
+	}
+}
+
+func (i *Interpreter) VisitWhileStmt(stmt *WhileStmt) {
+	if i.isTruthy(i.evaluate(stmt.Condition)) {
+		i.execute(stmt.Statement)
+	}
 }
 
 func (i *Interpreter) evaluate(expr Expr) interface{} {

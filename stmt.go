@@ -4,16 +4,20 @@ package main
 
 type StmtVisitorVoid interface {
     VisitExprStmt(expr *ExprStmt) 
-	VisitPrintStmt(expr *PrintStmt) 
+	VisitIfStmt(expr *IfStmt) 
+	VisitWhileStmt(expr *WhileStmt) 
 	VisitVarDeclStmt(expr *VarDeclStmt) 
 	VisitBlockStmt(expr *BlockStmt) 
+	VisitPrintStmt(expr *PrintStmt) 
 }
 
 type StmtVisitor[R any] interface {
     VisitExprStmt(expr *ExprStmt) R
-	VisitPrintStmt(expr *PrintStmt) R
+	VisitIfStmt(expr *IfStmt) R
+	VisitWhileStmt(expr *WhileStmt) R
 	VisitVarDeclStmt(expr *VarDeclStmt) R
 	VisitBlockStmt(expr *BlockStmt) R
+	VisitPrintStmt(expr *PrintStmt) R
 }
 
 type Stmt interface {
@@ -39,20 +43,40 @@ func (e *ExprStmt) Accept(visitor StmtVisitorVoid)  {
 }
 
 
-type PrintStmt struct {
-    Expression Expr
+type IfStmt struct {
+    Condition Expr
+	Then Stmt
+	Else Stmt
 }
 
-func (e *PrintStmt) AcceptString(visitor StmtVisitor[string]) string {
-    return visitor.VisitPrintStmt(e)
+func (e *IfStmt) AcceptString(visitor StmtVisitor[string]) string {
+    return visitor.VisitIfStmt(e)
 }
 
-func (e *PrintStmt) AcceptInterface(visitor StmtVisitor[interface{}]) interface{} {
-    return visitor.VisitPrintStmt(e)
+func (e *IfStmt) AcceptInterface(visitor StmtVisitor[interface{}]) interface{} {
+    return visitor.VisitIfStmt(e)
 }
 
-func (e *PrintStmt) Accept(visitor StmtVisitorVoid)  {
-    visitor.VisitPrintStmt(e)
+func (e *IfStmt) Accept(visitor StmtVisitorVoid)  {
+    visitor.VisitIfStmt(e)
+}
+
+
+type WhileStmt struct {
+    Condition Expr
+	Statement Stmt
+}
+
+func (e *WhileStmt) AcceptString(visitor StmtVisitor[string]) string {
+    return visitor.VisitWhileStmt(e)
+}
+
+func (e *WhileStmt) AcceptInterface(visitor StmtVisitor[interface{}]) interface{} {
+    return visitor.VisitWhileStmt(e)
+}
+
+func (e *WhileStmt) Accept(visitor StmtVisitorVoid)  {
+    visitor.VisitWhileStmt(e)
 }
 
 
@@ -88,6 +112,23 @@ func (e *BlockStmt) AcceptInterface(visitor StmtVisitor[interface{}]) interface{
 
 func (e *BlockStmt) Accept(visitor StmtVisitorVoid)  {
     visitor.VisitBlockStmt(e)
+}
+
+
+type PrintStmt struct {
+    Expression Expr
+}
+
+func (e *PrintStmt) AcceptString(visitor StmtVisitor[string]) string {
+    return visitor.VisitPrintStmt(e)
+}
+
+func (e *PrintStmt) AcceptInterface(visitor StmtVisitor[interface{}]) interface{} {
+    return visitor.VisitPrintStmt(e)
+}
+
+func (e *PrintStmt) Accept(visitor StmtVisitorVoid)  {
+    visitor.VisitPrintStmt(e)
 }
 
 

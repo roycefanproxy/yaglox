@@ -7,19 +7,29 @@ program -> declaration\* EOF;
 
 declaration -> varDecl | statement;
 
-statement -> exprStmt | printStmt | block;
+statement -> exprStmt | ifStmt | forStmt | whileStmt | block | printStmt;
 
 exprStmt -> expression ";";
 
-printStmt -> "print" expression ";";
+ifStmt -> "if" "(" expression ")" statement ("else" statement)?;
+
+forStmt -> "for" "(" (varDecl | exprStmt | ";") expression? ";" expression? ")" statement;
+
+while -> "while" "(" expression ")" statement;
 
 block -> "{" declaration* "}"
+
+printStmt -> "print" expression ";";
 
 varDecl -> "var" IDENTIFIER ("=" expression)? ";";
 
 expression -> assignment;
 
-assignment -> IDENTIFIER "=" assignment | equality;
+assignment -> IDENTIFIER "=" assignment | or;
+
+or -> and ("or" and)*;
+
+and -> equality ("and" equality)*;
 
 equality -> comparison ((!= | ==) comparison)\*;
 

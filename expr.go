@@ -7,6 +7,7 @@ type ExprVisitorVoid interface {
 	VisitBinary(expr *Binary) 
 	VisitGrouping(expr *Grouping) 
 	VisitLiteral(expr *Literal) 
+	VisitLogical(expr *Logical) 
 	VisitUnary(expr *Unary) 
 	VisitVariable(expr *Variable) 
 }
@@ -16,6 +17,7 @@ type ExprVisitor[R any] interface {
 	VisitBinary(expr *Binary) R
 	VisitGrouping(expr *Grouping) R
 	VisitLiteral(expr *Literal) R
+	VisitLogical(expr *Logical) R
 	VisitUnary(expr *Unary) R
 	VisitVariable(expr *Variable) R
 }
@@ -94,6 +96,25 @@ func (e *Literal) AcceptInterface(visitor ExprVisitor[interface{}]) interface{} 
 
 func (e *Literal) Accept(visitor ExprVisitorVoid)  {
     visitor.VisitLiteral(e)
+}
+
+
+type Logical struct {
+    Left Expr
+	Operator Token
+	Right Expr
+}
+
+func (e *Logical) AcceptString(visitor ExprVisitor[string]) string {
+    return visitor.VisitLogical(e)
+}
+
+func (e *Logical) AcceptInterface(visitor ExprVisitor[interface{}]) interface{} {
+    return visitor.VisitLogical(e)
+}
+
+func (e *Logical) Accept(visitor ExprVisitorVoid)  {
+    visitor.VisitLogical(e)
 }
 
 
