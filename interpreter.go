@@ -11,8 +11,9 @@ type Interpreter struct {
 }
 
 func NewInterpreter() *Interpreter {
+
 	return &Interpreter{
-		Env: NewEnvironment(nil),
+		Env: GlobalEnv,
 	}
 }
 
@@ -95,6 +96,26 @@ func (i *Interpreter) VisitBinary(expr *Binary) interface{} {
 	return nil
 }
 
+func (i *Interpreter) VisitCall(expr *Call) interface{} {
+	callee := i.evaluate(expr.Callee)
+
+	args := []interface{}{}
+	for _, arg := range expr.Arguments {
+		args = append(args, i.evaluate(arg))
+	}
+
+	callable, ok := callee.(Callable)
+	if !ok {
+		EmitRuntimeError(expr.Operator, "Can only call functions and classes.")
+	}
+
+	if argsLen, arity := len(args), callable.Arity(); argsLen != arity {
+		msg := fmt.Sprintf("Expected %v arguments but got %v.", arity, argsLen)
+		panic(EmitRuntimeError(expr.Operator, msg))
+	}
+	return callable.Invoke(i, args)
+}
+
 func (i *Interpreter) VisitLogical(expr *Logical) interface{} {
 	left := i.evaluate(expr.Left)
 
@@ -125,6 +146,23 @@ func (i *Interpreter) VisitExprStmt(stmt *ExprStmt) {
 	i.evaluate(stmt.Expression)
 }
 
+func (i *Interpreter) VisitFunctionStmt(stmt *FunctionStmt) {
+	function := &Function{
+		Definition: stmt,
+		Closure:    i.Env,
+	}
+	i.Env.Define(string(stmt.Name.Lexeme()), function)
+}
+
+func (i *Interpreter) VisitReturnStmt(stmt *ReturnStmt) {
+	var val interface{}
+	if stmt.Value != nil {
+		val = i.evaluate(stmt.Value)
+		GlobalEnv.Values["return"] = val
+	}
+	panic("return")
+}
+
 func (i *Interpreter) VisitPrintStmt(stmt *PrintStmt) {
 	val := i.evaluate(stmt.Expression)
 	fmt.Println(i.stringify(val))
@@ -137,7 +175,7 @@ func (i *Interpreter) VisitVarDeclStmt(stmt *VarDeclStmt) {
 		val = i.evaluate(stmt.Initializer)
 	}
 
-	i.Env.Define(stmt.Name, val)
+	i.Env.Define(string(stmt.Name.Lexeme()), val)
 }
 
 func (i *Interpreter) VisitBlockStmt(stmt *BlockStmt) {
@@ -154,7 +192,7 @@ func (i *Interpreter) VisitIfStmt(stmt *IfStmt) {
 }
 
 func (i *Interpreter) VisitWhileStmt(stmt *WhileStmt) {
-	if i.isTruthy(i.evaluate(stmt.Condition)) {
+	for i.isTruthy(i.evaluate(stmt.Condition)) {
 		i.execute(stmt.Statement)
 	}
 }

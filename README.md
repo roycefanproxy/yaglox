@@ -5,9 +5,15 @@ Yet another go lox
 
 program -> declaration\* EOF;
 
-declaration -> varDecl | statement;
+declaration -> funcDecl | varDecl | statement;
 
-statement -> exprStmt | ifStmt | forStmt | whileStmt | block | printStmt;
+funcDecl -> "func" function;
+
+function -> IDENTIFIER "(" params? ")" block;
+
+params -> IDENTIFIER ("," IDENTIFIER)*;
+
+statement -> exprStmt | ifStmt | forStmt | whileStmt | block | returnStmt | printStmt;
 
 exprStmt -> expression ";";
 
@@ -18,6 +24,8 @@ forStmt -> "for" "(" (varDecl | exprStmt | ";") expression? ";" expression? ")" 
 while -> "while" "(" expression ")" statement;
 
 block -> "{" declaration* "}"
+
+returnStmt -> "return" expression? ";";
 
 printStmt -> "print" expression ";";
 
@@ -39,7 +47,11 @@ term -> factor ((- | +) factor)\*;
 
 factor -> unary ((/ | \*) unary)\*;
 
-unary -> ((! | -) unary) | primary;
+unary -> ((! | -) unary) | call;
+
+call -> primary ("(" arguments? ")")*;
+
+arguments -> expression ("," expression)*;
 
 primary -> NUMBER | STRING | "false" | "true" | "nil" | grouping | IDENTIFIER;
 

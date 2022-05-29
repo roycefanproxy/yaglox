@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/roycefanproxy/yaglox/constant"
 )
 
@@ -39,6 +41,9 @@ func (p *Parser) declaration() Stmt {
 	if p.match(constant.Var) {
 		return p.varDeclaration()
 	}
+	if p.match(constant.Func) {
+		return p.functionStatement("function")
+	}
 
 	return p.statement()
 }
@@ -72,6 +77,9 @@ func (p *Parser) statement() Stmt {
 	if p.match(constant.LeftBrace) {
 		return p.blockStatement()
 	}
+	if p.match(constant.Return) {
+		return p.returnStatement()
+	}
 	if p.match(constant.Print) {
 		return p.printStatement()
 	}
@@ -98,7 +106,7 @@ func (p *Parser) ifStatement() Stmt {
 }
 
 func (p *Parser) whileStatement() Stmt {
-	p.consume(constant.LeftBrace, "Expect '(' after 'while'.")
+	p.consume(constant.LeftParen, "Expect '(' after 'while'.")
 	condition := p.expression()
 	p.consume(constant.RightParen, "Expect ')' after while condition.")
 
@@ -111,7 +119,7 @@ func (p *Parser) whileStatement() Stmt {
 }
 
 func (p *Parser) forStatement() Stmt {
-	p.consume(constant.LeftBrace, "Expect '(' after 'while'.")
+	p.consume(constant.LeftParen, "Expect '(' after 'while'.")
 	var initializer Stmt
 	if p.match(constant.Semicolon) {
 	} else if p.match(constant.Var) {
@@ -170,6 +178,21 @@ func (p *Parser) blockStatement() Stmt {
 	}
 }
 
+func (p *Parser) returnStatement() Stmt {
+	keyword := p.previous()
+	var val Expr
+
+	if !p.check(constant.Semicolon) {
+		val = p.expression()
+	}
+
+	p.consume(constant.Semicolon, "Expect ';' after return value.")
+	return &ReturnStmt{
+		Keyword: keyword,
+		Value:   val,
+	}
+}
+
 func (p *Parser) printStatement() Stmt {
 	expr := p.expression()
 	p.consume(constant.Semicolon, "Expect ';' after value.")
@@ -182,6 +205,39 @@ func (p *Parser) expressionStatement() Stmt {
 	p.consume(constant.Semicolon, "Expect ';' after value.")
 	return &ExprStmt{
 		Expression: expr,
+	}
+}
+
+func (p *Parser) functionStatement(kind string) Stmt {
+	msg := fmt.Sprintf("Expect %s name.", kind)
+	name := p.consume(constant.Identifier, msg)
+
+	msg = fmt.Sprintf("Expect '(' after %s name.", kind)
+	p.consume(constant.LeftParen, msg)
+	params := []Token{}
+	if !p.check(constant.RightParen) {
+		for {
+			if len(params) >= 255 {
+				p.error(p.peek(), "Can't have more than 255 parameters.")
+			}
+
+			params = append(params, p.consume(constant.Identifier, "Expect parameter name."))
+
+			if !p.match(constant.Comma) {
+				break
+			}
+		}
+	}
+
+	p.consume(constant.RightParen, "Expect ')' after parameters.")
+
+	msg = fmt.Sprintf("Expect '{' before %s body.", kind)
+	p.consume(constant.LeftBrace, msg)
+	body := p.statementsInBlock()
+	return &FunctionStmt{
+		Name:   name,
+		Params: params,
+		Body:   body,
 	}
 }
 
@@ -257,7 +313,44 @@ func (p *Parser) unary() Expr {
 		}
 	}
 
-	return p.primary()
+	return p.call()
+}
+
+func (p *Parser) call() Expr {
+	expr := p.primary()
+
+	for {
+		if p.match(constant.LeftParen) {
+			expr = p.finishCall(expr)
+		} else {
+			break
+		}
+	}
+
+	return expr
+}
+
+func (p *Parser) finishCall(callee Expr) Expr {
+	args := []Expr{}
+	if !p.check(constant.RightParen) {
+		for {
+			if len(args) >= 255 {
+				p.error(p.peek(), "Can't have more than 255 arguments.")
+			}
+			args = append(args, p.expression())
+			if !p.match(constant.Comma) {
+				break
+			}
+		}
+	}
+
+	parenthesis := p.consume(constant.RightParen, "Expect ')' after arguments.")
+
+	return &Call{
+		Callee:    callee,
+		Operator:  parenthesis,
+		Arguments: args,
+	}
 }
 
 func (p *Parser) primary() (expr Expr) {

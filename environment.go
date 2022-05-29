@@ -7,6 +7,13 @@ type Environment struct {
 	OuterEnv *Environment
 }
 
+var GlobalEnv *Environment
+
+func init() {
+	GlobalEnv = NewEnvironment(nil)
+	GlobalEnv.Define("clock", ClockFunction{})
+}
+
 func NewEnvironment(outerEnv *Environment) *Environment {
 	return &Environment{
 		Values:   map[string]interface{}{},
@@ -14,8 +21,8 @@ func NewEnvironment(outerEnv *Environment) *Environment {
 	}
 }
 
-func (env *Environment) Define(name Token, value interface{}) {
-	env.Values[string(name.Lexeme())] = value
+func (env *Environment) Define(name string, value interface{}) {
+	env.Values[name] = value
 }
 
 func (env *Environment) Get(name Token) interface{} {

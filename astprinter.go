@@ -29,6 +29,11 @@ func (p ASTPrinter) VisitBinary(expr *Binary) string {
 	return p.parenthesize(expr.Operator.Lexeme(), expr.Left, expr.Right)
 }
 
+func (p ASTPrinter) VisitCall(expr *Call) string {
+	name := fmt.Sprintf("func[%s]", expr.Callee.AcceptString(p))
+	return p.parenthesize([]rune(name), expr.Arguments...)
+}
+
 func (p ASTPrinter) VisitGrouping(expr *Grouping) string {
 	return p.parenthesize([]rune("group"), expr.Expression)
 }

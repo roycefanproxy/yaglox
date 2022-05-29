@@ -5,6 +5,7 @@ package main
 type ExprVisitorVoid interface {
     VisitAssign(expr *Assign) 
 	VisitBinary(expr *Binary) 
+	VisitCall(expr *Call) 
 	VisitGrouping(expr *Grouping) 
 	VisitLiteral(expr *Literal) 
 	VisitLogical(expr *Logical) 
@@ -15,6 +16,7 @@ type ExprVisitorVoid interface {
 type ExprVisitor[R any] interface {
     VisitAssign(expr *Assign) R
 	VisitBinary(expr *Binary) R
+	VisitCall(expr *Call) R
 	VisitGrouping(expr *Grouping) R
 	VisitLiteral(expr *Literal) R
 	VisitLogical(expr *Logical) R
@@ -62,6 +64,25 @@ func (e *Binary) AcceptInterface(visitor ExprVisitor[interface{}]) interface{} {
 
 func (e *Binary) Accept(visitor ExprVisitorVoid)  {
     visitor.VisitBinary(e)
+}
+
+
+type Call struct {
+    Callee Expr
+	Operator Token
+	Arguments []Expr
+}
+
+func (e *Call) AcceptString(visitor ExprVisitor[string]) string {
+    return visitor.VisitCall(e)
+}
+
+func (e *Call) AcceptInterface(visitor ExprVisitor[interface{}]) interface{} {
+    return visitor.VisitCall(e)
+}
+
+func (e *Call) Accept(visitor ExprVisitorVoid)  {
+    visitor.VisitCall(e)
 }
 
 

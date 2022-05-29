@@ -4,19 +4,23 @@ package main
 
 type StmtVisitorVoid interface {
     VisitExprStmt(expr *ExprStmt) 
+	VisitFunctionStmt(expr *FunctionStmt) 
 	VisitIfStmt(expr *IfStmt) 
 	VisitWhileStmt(expr *WhileStmt) 
 	VisitVarDeclStmt(expr *VarDeclStmt) 
 	VisitBlockStmt(expr *BlockStmt) 
+	VisitReturnStmt(expr *ReturnStmt) 
 	VisitPrintStmt(expr *PrintStmt) 
 }
 
 type StmtVisitor[R any] interface {
     VisitExprStmt(expr *ExprStmt) R
+	VisitFunctionStmt(expr *FunctionStmt) R
 	VisitIfStmt(expr *IfStmt) R
 	VisitWhileStmt(expr *WhileStmt) R
 	VisitVarDeclStmt(expr *VarDeclStmt) R
 	VisitBlockStmt(expr *BlockStmt) R
+	VisitReturnStmt(expr *ReturnStmt) R
 	VisitPrintStmt(expr *PrintStmt) R
 }
 
@@ -40,6 +44,25 @@ func (e *ExprStmt) AcceptInterface(visitor StmtVisitor[interface{}]) interface{}
 
 func (e *ExprStmt) Accept(visitor StmtVisitorVoid)  {
     visitor.VisitExprStmt(e)
+}
+
+
+type FunctionStmt struct {
+    Name Token
+	Params []Token
+	Body []Stmt
+}
+
+func (e *FunctionStmt) AcceptString(visitor StmtVisitor[string]) string {
+    return visitor.VisitFunctionStmt(e)
+}
+
+func (e *FunctionStmt) AcceptInterface(visitor StmtVisitor[interface{}]) interface{} {
+    return visitor.VisitFunctionStmt(e)
+}
+
+func (e *FunctionStmt) Accept(visitor StmtVisitorVoid)  {
+    visitor.VisitFunctionStmt(e)
 }
 
 
@@ -112,6 +135,24 @@ func (e *BlockStmt) AcceptInterface(visitor StmtVisitor[interface{}]) interface{
 
 func (e *BlockStmt) Accept(visitor StmtVisitorVoid)  {
     visitor.VisitBlockStmt(e)
+}
+
+
+type ReturnStmt struct {
+    Keyword Token
+	Value Expr
+}
+
+func (e *ReturnStmt) AcceptString(visitor StmtVisitor[string]) string {
+    return visitor.VisitReturnStmt(e)
+}
+
+func (e *ReturnStmt) AcceptInterface(visitor StmtVisitor[interface{}]) interface{} {
+    return visitor.VisitReturnStmt(e)
+}
+
+func (e *ReturnStmt) Accept(visitor StmtVisitorVoid)  {
+    visitor.VisitReturnStmt(e)
 }
 
 
